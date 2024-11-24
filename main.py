@@ -4,9 +4,10 @@ import pandas as pd
 import xgboost as xgb
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import classification_report
+from sklearn.metrics import classification_report, precision_score, recall_score, f1_score
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.preprocessing import StandardScaler
+
 
 warnings.filterwarnings("ignore", message=r".*Falling back to prediction using DMatrix.*")
 warnings.filterwarnings("ignore")
@@ -62,10 +63,10 @@ def prepare_data():
 
 def grid_search(model, X_train, y_train):
     param_grid = {
-        'max_depth': [5, 8],
+        'max_depth': [8],
         'learning_rate': [0.1],
-        'n_estimators': [50, 100, 120],
-        'subsample': [0.6, 0.8],
+        'n_estimators': [50, 120],
+        'subsample': [0.8],
         'colsample_bytree': [0.8],
     }
 
@@ -93,12 +94,24 @@ def grid_search(model, X_train, y_train):
 
 def test(model, X_test, y_test):
     y_pred = model.predict(X_test)
-    y_pred = (y_pred >= 0.5).astype(int)
+    y_pred_prob = model.predict_proba(X_test)[:, 1]
 
+    print("Classification Report:")
     print(classification_report(y_test, y_pred))
 
-    from common import plot_confusion_matrix
+    precision = precision_score(y_test, y_pred)
+    recall = recall_score(y_test, y_pred)
+    f1 = f1_score(y_test, y_pred)
+
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall: {recall:.4f}")
+    print(f"F1-Score: {f1:.4f}")
+
+    from common import plot_confusion_matrix, plot_precision_recall_curve, plot_roc_curve
+
     plot_confusion_matrix(y_test, y_pred)
+    plot_roc_curve(y_test, y_pred_prob)
+    plot_precision_recall_curve(y_test, y_pred_prob)
 
 
 def final_train(params, X_train, y_train):
